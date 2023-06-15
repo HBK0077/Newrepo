@@ -8,7 +8,7 @@ emailForgotButton.addEventListener("click", async(e)=>{
             email: forgotEmail.value
         } 
 
-        const forgotPassword = await axios.post("http://localhost:2500/forgotpassword", EmailForgot);
+        const forgotPassword = await axios.post("http://34.226.155.238:3500/forgotpassword", EmailForgot);
 
         if(forgotPassword.data.success === true){
             alert("Successfully sent Mail. Please open your Email");
