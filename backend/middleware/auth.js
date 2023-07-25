@@ -7,7 +7,9 @@ const authenticate = async(req, res, next)=>{
         console.log(token);
         const user = jwt.verify(token, 'secretKeyIsBiggerValue');
         console.log("User ID>>>>>>>>>>>>>>>>>", user.userId);
-        const person = await User.findByPk(user.userId)
+        const person = await User.find({
+            "_id":user.userId
+        })
             req.user = person;
             //console.log(req.user.id);
             next();

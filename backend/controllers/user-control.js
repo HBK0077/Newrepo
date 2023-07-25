@@ -1,14 +1,11 @@
-const expense = require("../models/expense");
 const user = require("../models/user"); 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken'); 
-const RazorPay = require('razorpay');
-const order = require("../models/orders");
-const sequelize = require("../util/database");
+//const sequelize = require("../util/database");
 require('dotenv').config();
 
 exports.addUser = async(req,res,next)=>{
-    const transaction = await sequelize.transaction();
+    
     try{
         const name = req.body.name;
         const email = req.body.email;
@@ -23,24 +20,21 @@ exports.addUser = async(req,res,next)=>{
             if(error){
                 return res.json({msg:"Encryption error", success:false});
             }else{
-                const found = await user.findAll({
-                    where:{
-                        email: checkemail
-                    }
-                })
-                if(found.length != 0){
+                const found = await user.findOne({
+                    "email": checkemail //this is a object
+                });
+                if(found !== null){
                     res.json({msg:"User Already exists!! Please enter a different email", success:false});
                 }else{
-                    const data = await user.create({
+                    const data = new user({
                     name:name,
                     email:email,
                     password:hash,
                     totalExpense:totalExpense
-                },{
-                    transaction: transaction
-                })
+                });
+                data.save()
                 res.json({newUser: data, msg:"User created", success: true});
-                await transaction.commit();
+                
             }    
             }
 
@@ -49,8 +43,7 @@ exports.addUser = async(req,res,next)=>{
     catch(err){
         res.json({
             Error: err
-        })
-        await  transaction.rollback();
+        });
     }
 
 }
@@ -65,20 +58,15 @@ function generateAccessToken(id, isPremium){
 
 
 exports.userLogin = async(req,res,next)=>{
-    const transaction = await sequelize.transaction();
     try{
         const checkEmails = req.body.email;
         const checkPassword = req.body.password;
         console.log(checkEmails);
-        const login = await user.findAll({
-            where:{
-                email:checkEmails
-            }
-        },{
-            transaction: transaction
+        const login = await user.find({
+            'email': checkEmails 
         })
-        console.log(login[0]);
-        if(login.length>0){
+        console.log(login);
+        if(login.length > 0){
             bcrypt.compare(checkPassword, login[0].password, async(err, result)=>{
                 if(err){
                     return(res.json({msg:"dcrypting error",
@@ -92,9 +80,6 @@ exports.userLogin = async(req,res,next)=>{
                     success:true, token: generateAccessToken(login[0].id, login[0].isPremium)}
                     ))
 
-                    res.json({msg:"Password is correct",success:true, token: generateAccessToken(login[0].id, login[0].isPremium)})
-                    await transaction,commit();
-
                 }else{
                     return(res.json({msg:"Password is incorrect",
                     success:false}))
@@ -102,12 +87,11 @@ exports.userLogin = async(req,res,next)=>{
             })
         }
         else{
-                return(res.json("User doesnt exist"));
+                return res.json("User doesnt exist");
             }
             
     }
     catch(error){
         res.json({Error: error});
-        await transaction.rollback();
     }
 }

@@ -1,27 +1,30 @@
-const expense = require("../models/expense");
 const user = require("../models/user"); 
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken'); 
-const RazorPay = require('razorpay');
-const order = require("../models/orders");
-const sequelize = require("../util/database");
 const Forgotpassword = require("../models/forgotpassword");
 const uuid = require("uuid");
-const Sib = require("sib-api-v3-sdk");
+const Sib = require("sib-api-v3-sdk");//sib used for mailing in forgotpassword
 require('dotenv').config();
+
+
 exports.forgotpassword = async (req, res) => {
     try {
         const { email } =  req.body;
         // console.log(email);
-        const User = await user.findOne({where : { 
+        const User = await user.find({
             email: email
-         }});
-        // console.log(User);
+         });
+        console.log(User);
         if(User){
-            const id = uuid.v4();
+            const id = uuid.v4(); //UUID--> uriversally unique identifier
             console.log(id);
-            const result = await User.createForgotpassword({ id , active: true });
+            const result =  new Forgotpassword({ 
+                _id: id , 
+                active: true,
+                userId: User[0]._id
+             });
+             
             console.log(result); 
+            await result.save();
             const client=Sib.ApiClient.instance
             
         const apiKey=client.authentications['api-key']
@@ -42,7 +45,7 @@ exports.forgotpassword = async (req, res) => {
             to:receivers,
             subject:`this is the test subject`,
             textcontent:`reset password`,
-            htmlContent:`<a href="http://34.226.155.238:3500/resetpassword/${id}">Reset password</a>`
+            htmlContent:`<a href="http://localhost:3500/resetpassword/${id}">Reset password</a>`
             
         })
         console.log(data);
@@ -58,13 +61,12 @@ exports.forgotpassword = async (req, res) => {
 exports.resetpassword = async(req, res) => {
     try{
         const id =  req.params.id;
-    const forgotpasswordrequest = await Forgotpassword.findOne({ where : 
-        { 
-            id: id
-         }})
+    const forgotpasswordrequest = await Forgotpassword.find({
+            _id: id
+        })
     console.log(forgotpasswordrequest);
         if(forgotpasswordrequest){
-            await forgotpasswordrequest.update({ active: false});
+            await Forgotpassword.findOneAndUpdate({_id:id},{ active: false});
             res.send(`<html>
                                     <script>
                                         function formsubmitted(e){
@@ -93,10 +95,10 @@ exports.updatepassword = async(req, res) => {
 
     try {
         const { newpassword } = req.query;
-        const { resetpasswordid } = req.params;
-        const resetpasswordrequest = await Forgotpassword.findOne({ where : { id: resetpasswordid }})
+        const resetid  = req.params.rid;
+        const resetpasswordrequest = await Forgotpassword.find({ _id: resetid })
 
-        const User = await user.findOne({where: { id : resetpasswordrequest.userId}})
+        const User = await user.find({_id : resetpasswordrequest[0].userId})
                 // console.log('userDetails', user)
                 if(User) {
                     //encrypt the password
@@ -106,8 +108,8 @@ exports.updatepassword = async(req, res) => {
                                 console.log(err);
                                 throw new Error(err);
                             }
-                            await User.update({ password: hash })
-                                res.json({message: 'Successfuly update the new password', success: true});
+                            let data = await user.findOneAndUpdate({_id: User[0]._id},{ password: hash })
+                            return res.json({message: 'Successfuly update the new password', success: true});
 
                     });
             } else{

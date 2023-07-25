@@ -2,9 +2,9 @@
 const express = require("express");
 const routes = express.Router();
 const admin = require("../controllers/add-expenses");
-const premium = require("../controllers/premium")
+
 const userAuthentication = require('../middleware/auth');
-const RazorPay = require('razorpay');
+
 
 routes.post("/add-expenses", userAuthentication.authenticate, admin.addExpenses);
 

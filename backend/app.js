@@ -4,8 +4,8 @@ const path = require("path");
 const cors=require("cors")
 require('dotenv').config();
 const bodyparser=require("body-parser")
-const sequelize=require("./util/database")
-
+//const sequelize=require("./util/database")
+const mongoose = require("mongoose");
 const compression = require("compression");
 
 
@@ -36,20 +36,33 @@ app.use(premiumDetails);
 app.use(premiumFeatureDetails);
 app.use(resetPassword);
 
-User.hasMany(Expense);
-Expense.belongsTo(User);
-
-User.hasMany(Order);
-Order.belongsTo(User);
-
-User.hasMany(forgotPassword);
-forgotPassword.belongsTo(User);
-
-User.hasMany(downloadFile);
-downloadFile.belongsTo(User);
-
-console.log(process.env.NODE_ENV);
-
-sequelize.sync().then(()=>{
-    app.listen(process.env.PORT || 2500);
+app.use((req,res)=>{
+    res.sendFile(path.join(__dirname, `views/${req.url}`));
 })
+
+mongoose.connect("mongodb+srv://hrishikeshbalakrishna07:Hrishikesh123!!@cluster0.t9fkczp.mongodb.net/expenses")
+.then(result =>{
+  console.log("Successfully connected!!");  
+  app.listen(3500);
+})
+.catch(err =>{
+  console.log(err);
+});
+
+// User.hasMany(Expense);
+// Expense.belongsTo(User);
+
+// User.hasMany(Order);
+// Order.belongsTo(User);
+
+// User.hasMany(forgotPassword);
+// forgotPassword.belongsTo(User);
+
+// User.hasMany(downloadFile);
+// downloadFile.belongsTo(User);
+
+// console.log(process.env.NODE_ENV);
+
+// sequelize.sync().then(()=>{
+//     app.listen(process.env.PORT || 2500);
+// })

@@ -8,10 +8,8 @@ const AWS = require("aws-sdk");
 
 exports.leaderboardDetails = async(req,res,next)=>{
     try{
-        const leaderBoardOfUsers = await user.findAll({
-            order: [['totalExpense', "DESC"]]
-        });
-
+        const leaderBoardOfUsers = await user.find().sort({"totalExpense": -1});
+        console.log(leaderBoardOfUsers);
         res.json(leaderBoardOfUsers);
 
     }catch(err){
@@ -22,20 +20,28 @@ exports.leaderboardDetails = async(req,res,next)=>{
 //download user expense
 exports.downloadExpense = async(req,res,next)=>{
     try{
-        const expenses = await req.user.getExpenses();
+        //const expenses = await req.user[0].getExpenses();
+        const userId = req.user[0]._id;
+        const expenses = await expense.find({
+            userId: userId
+        })
+        //get expense will retrieve particular users expenses.
         //here expenses is an array and we cannot write an array into the file.
         console.log(expenses);
         //so we convert it to string using strigify.
         const stringifiedExpenses = JSON.stringify(expenses);
-        const userId = req.user.id;
-
+       
         const fileName = `Expenses${userId}/${new Date()}.txt`;
         const fileUrl = await uploadToS3(stringifiedExpenses, fileName);
         console.log(fileUrl);
-        await downloadFile.create({
+        const downloadData = new downloadFile({
             fileUrl: fileUrl,
             userId: userId
-        })
+        });
+        // await downloadFile.create({
+        //     fileUrl: fileUrl,
+        //     userId: userId
+        // })
         return res.json({fileUrl, success:true});
         
 
@@ -47,7 +53,7 @@ exports.downloadExpense = async(req,res,next)=>{
 
 async function uploadToS3(data, fileName){
     try{
-        const BUCKET_NAME = process.env.BUCKET_NAME;
+        const BUCKET_NAME = process.env.BUCKET_NAME; //is where we store the data in cloud
         const IAM_USER_KEY = process.env.S3_USER_KEY;
         const IAM_USER_SECRET_KEY = process.env.S3_USER_SECRET_KEY; 
 
@@ -60,7 +66,7 @@ async function uploadToS3(data, fileName){
                 Bucket: BUCKET_NAME,
                 Key: fileName,
                 Body: data,
-                ACL: "public-read"
+                ACL: "public-read" //ACL--> Access Control List
             }
             return new Promise((resolve, reject)=>{
                 s3bucket.upload(params, (err, s3response)=>{
